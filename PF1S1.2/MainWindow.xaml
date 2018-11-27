@@ -13,6 +13,8 @@
                     <CheckBox x:Name="cullingCheckBox" IsChecked="True" Click="cullingCheckBox_Click" MinWidth="10" MinHeight="10" BorderBrush="#FF3E3D3D"></CheckBox>
                     <Label>Outline</Label>
                     <CheckBox x:Name="outlineCheckBox" Click="outlineCheckBox_Click" MinWidth="10" MinHeight="10" BorderBrush="#FF3E3D3D"></CheckBox>
+                    <Label>Look at camera: </Label>
+                    <CheckBox x:Name="LookAtCam" Click="LookAtCam_Click" MinWidth="10" MinHeight="10" BorderBrush="#FF3E3D3D"></CheckBox>
                 </ToolBar>
             </ToolBarTray>
 

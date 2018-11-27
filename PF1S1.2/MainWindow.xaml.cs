@@ -108,40 +108,44 @@ namespace PF1S1._2
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            /*
-            switch (e.Key)
+            if (LookAtCam.IsChecked == false)
             {
-                case System.Windows.Input.Key.F10: this.Close(); break;
-
-                case System.Windows.Input.Key.W: m_world.RotationX -= 5.0f; break;
-                case System.Windows.Input.Key.S: m_world.RotationX += 5.0f; break;
-                case System.Windows.Input.Key.A: m_world.RotationY -= 5.0f; break;
-                case System.Windows.Input.Key.D: m_world.RotationY += 5.0f; break;
-                
+                switch (e.Key)
+                {
 
 
-                case System.Windows.Input.Key.Down: m_world.TranslationY -= 1.0f; break;
+                    case System.Windows.Input.Key.F10: this.Close(); break;
 
-                case System.Windows.Input.Key.Up: m_world.TranslationY += 1.0f; break;
-                case System.Windows.Input.Key.Left: m_world.TranslationX -= 1.0f; break;
-                case System.Windows.Input.Key.Right: m_world.TranslationX += 1.0f; break;
-
-                case System.Windows.Input.Key.OemPlus: m_world.TranslationZ -= 5.0f; break;
-                case System.Windows.Input.Key.OemMinus: m_world.TranslationZ += 5.0f; break;
+                    case System.Windows.Input.Key.W: m_world.RotationX -= 5.0f; break;
+                    case System.Windows.Input.Key.S: m_world.RotationX += 5.0f; break;
+                    case System.Windows.Input.Key.A: m_world.RotationY -= 5.0f; break;
+                    case System.Windows.Input.Key.D: m_world.RotationY += 5.0f; break;
 
 
+
+                    case System.Windows.Input.Key.Down: m_world.TranslationY -= 1.0f; break;
+
+                    case System.Windows.Input.Key.Up: m_world.TranslationY += 1.0f; break;
+                    case System.Windows.Input.Key.Left: m_world.TranslationX -= 1.0f; break;
+                    case System.Windows.Input.Key.Right: m_world.TranslationX += 1.0f; break;
+
+                    case System.Windows.Input.Key.Q: m_world.TranslationZ -= 5.0f; break;
+                    case System.Windows.Input.Key.E: m_world.TranslationZ += 5.0f; break;
+
+                }
 
             }
-            */
-
-            switch (e.Key)
+            else
             {
-                case Key.W: m_world.UpdateCameraPosition(0, 0, 1); break;
-                case Key.S: m_world.UpdateCameraPosition(0, 0, -1); break;
-                case Key.A: m_world.UpdateCameraPosition(-1, 0, 0); break;
-                case Key.D: m_world.UpdateCameraPosition(1, 0, 0); break;
-                case Key.Q: m_world.UpdateCameraPosition(0, 1, 0); break;
-                case Key.E: m_world.UpdateCameraPosition(0, -1, 0); break;
+                switch (e.Key)
+                {
+                    case Key.W: m_world.UpdateCameraPosition(0, 0, 1); break;
+                    case Key.S: m_world.UpdateCameraPosition(0, 0, -1); break;
+                    case Key.A: m_world.UpdateCameraPosition(-1, 0, 0); break;
+                    case Key.D: m_world.UpdateCameraPosition(1, 0, 0); break;
+                    case Key.Q: m_world.UpdateCameraPosition(0, 1, 0); break;
+                    case Key.E: m_world.UpdateCameraPosition(0, -1, 0); break;
+                }
             }
 
         }
@@ -164,44 +168,48 @@ namespace PF1S1._2
 
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
-            bool outOfBoundsX = false;
-            bool outOfBoundsY = false;
-            Point point = e.GetPosition(this);
+            if (LookAtCam.IsChecked.Value) {
+                bool outOfBoundsX = false;
+                bool outOfBoundsY = false;
+                Point point = e.GetPosition(this);
             
-            if (point.Y <= BORDER || point.Y >= this.Height - BORDER)
-            {
-                outOfBoundsY = true;
-            }
-            if (point.X <= BORDER || point.X >= this.Width - BORDER)
-            {
-                outOfBoundsX = true;
-            }
-
-            if (!outOfBoundsY && !outOfBoundsX)
-            {
-                double deltaX = oldPos.X - point.X;
-                double deltaY = oldPos.Y - point.Y;
-                m_world.UpdateCameraRotation(deltaX, deltaY);
-                oldPos = point;
-            }
-            else
-            {
-                if (outOfBoundsX)
+                if (point.Y <= BORDER || point.Y >= this.Height - BORDER)
                 {
-                    SetCursorPos((int)this.Left + (int)this.Width / 2, (int)this.Top + (int)point.Y);
-                    oldPos.X = this.Width / 2;
-                    oldPos.Y = point.Y;
+                    outOfBoundsY = true;
+                }
+                if (point.X <= BORDER || point.X >= this.Width - BORDER)
+                {
+                    outOfBoundsX = true;
+                }
+
+                if (!outOfBoundsY && !outOfBoundsX)
+                {
+                    double deltaX = oldPos.X - point.X;
+                    double deltaY = oldPos.Y - point.Y;
+                    m_world.UpdateCameraRotation(deltaX, deltaY);
+                    oldPos = point;
                 }
                 else
                 {
-                    SetCursorPos((int)this.Left + (int)point.X, (int)this.Top + (int)this.Height / 2);
-                    oldPos.Y = this.Height / 2;
-                    oldPos.X = point.X;
+                    if (outOfBoundsX)
+                    {
+                        SetCursorPos((int)this.Left + (int)this.Width / 2, (int)this.Top + (int)point.Y);
+                        oldPos.X = this.Width / 2;
+                        oldPos.Y = point.Y;
+                    }
+                    else
+                    {
+                        SetCursorPos((int)this.Left + (int)point.X, (int)this.Top + (int)this.Height / 2);
+                        oldPos.Y = this.Height / 2;
+                        oldPos.X = point.X;
+                    }
                 }
             }
         }
 
-
-
+        private void LookAtCam_Click(object sender, RoutedEventArgs e)
+        {
+            m_world.isLookAtCameraEnabled = (bool)LookAtCam.IsChecked.Value;
+        }
     }
 }

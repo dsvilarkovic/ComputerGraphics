@@ -9,6 +9,7 @@ using System.Diagnostics;
 using SharpGL.SceneGraph;
 using AssimpSample;
 using SharpGL.SceneGraph.Cameras;
+using System.Drawing;
 
 namespace PF1S1._2
 {
@@ -17,10 +18,16 @@ namespace PF1S1._2
     {
         #region Atributi
 
-        private String[] tekstProjekta = { "Predmet: Racunarska grafika", "Sk.god: 2018/19. ", "Ime: Dusan", "Prezime: Svilarkovic", "Sifra zad: 1.2" };
+        private String[] tekstProjekta = {"Predmet: Racunarska grafika","Sk.god: 2018/19","Ime: Dusan","Prezime: Svilarkovic","Sifra zad: 1.2"};
 
         private DisplayList podlogaDisplayList = new DisplayList();
         private uint podlogaID = 0;
+
+
+        /// <summary>
+        /// Indikator da li je lookAtCamera podesena 
+        /// </summary>
+        public bool isLookAtCameraEnabled = false;
 
 
         /// <summary>
@@ -215,27 +222,34 @@ namespace PF1S1._2
         /// </summary>
         public void Initialize(OpenGL gl)
         {
-            //TODO obrisati
-            // Podesavanje inicijalnih parametara kamere
-            lookAtCam = new LookAtCamera();
-            lookAtCam.Position = new Vertex(0f, 0f, 0f);
-            lookAtCam.Target = new Vertex(0f, 0f, -10f);
-            lookAtCam.UpVector = new Vertex(0f, 1f, 0f);
-            right = new Vertex(1f, 0f, 0f);
-            direction = new Vertex(0f, 0f, -1f);
-            lookAtCam.Target = lookAtCam.Position + direction;
-            lookAtCam.Project(gl);
-
-            //TODO kraj brisanja
-
-            gl.Enable(OpenGL.GL_LINE_STIPPLE);
             
             kamion_scene.LoadScene();
             kamion_scene.Initialize();
 
             kontejner_scene.LoadScene();
             kontejner_scene.Initialize();
+
+            if(isLookAtCameraEnabled)
+                SetupCamera(gl);
         }
+
+        private void SetupCamera(OpenGL gl)
+        {
+            if (lookAtCam == null)
+            {
+                gl.MatrixMode(OpenGL.GL_MODELVIEW);
+                gl.LoadIdentity();
+                lookAtCam = new LookAtCamera();
+                lookAtCam.Position = new Vertex(0f, 0f, -2 * POLU_DUZINA);
+                lookAtCam.Target = new Vertex(0f, 0f, -10f);
+                lookAtCam.UpVector = new Vertex(0f, 1f, 0f);
+                right = new Vertex(1f, 0f, 0f);
+                direction = new Vertex(0f, 0f, -1f);
+                lookAtCam.Target = lookAtCam.Position + direction;
+                lookAtCam.Project(gl);
+            }
+        }
+
 
         /// <summary>
         /// Podesava viewport i projekciju za OpenGL kontrolu.
@@ -249,7 +263,7 @@ namespace PF1S1._2
             gl.MatrixMode(OpenGL.GL_PROJECTION);
             gl.LoadIdentity();
             
-            gl.Perspective(45f, (double)width / height, 0.1f, 100f);
+            gl.Perspective(45f, (double)width / height, 1f, 100f);
             gl.Viewport(0, 0, m_width, m_height);
             gl.MatrixMode(OpenGL.GL_MODELVIEW);
 
@@ -268,7 +282,11 @@ namespace PF1S1._2
         /// </summary>
         public void Draw(OpenGL gl)
         {
+            
             gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+            gl.MatrixMode(OpenGL.GL_MODELVIEW);
+            gl.LoadIdentity();
+
 
             // Ako je izabrano back face culling ukljuci ga i obratno
             if (m_culling == true)
@@ -301,49 +319,36 @@ namespace PF1S1._2
                 gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
             }
 
-            gl.MatrixMode(OpenGL.GL_MODELVIEW);
-            gl.LoadIdentity();
 
 
-            //TODO obrisati 
-            //Unosi transformacije u ModelView matricu koristeći svoje trenutno podešene parametre
-            lookAtCam.Project(gl);
+            //gl.Viewport(0, 0, m_width, m_height);
+            //gl.MatrixMode(OpenGL.GL_PROJECTION);
+            //gl.LoadIdentity();
+
+            //gl.Perspective(45f, (double)m_width / m_height, 1f, 100f);
+
+
+
+
 
             //TODO posle brisanja  lookAtCam otkomentarisati
-            //MoveAround(gl);
+            //lookAtCam.Project(gl);
+            MoveAround(gl);
 
             gl.PushMatrix();
-
             
             gl.Color(0f, 1f, 0f);
-
             
             gl.PushMatrix();
-                
                 gl.Translate(0f, 0f, (float)-(2*POLU_DUZINA));
-
                 DrawKamion(gl);
-
-                DrawKontejner(gl);
-
-                
-
+                DrawKontejner(gl);          
                 //crtanje podloge
                 gl.Color(0.8f, 0.8f, 0.8f);
-                gl.CallList(podlogaID);
-            
+                gl.CallList(podlogaID);            
                 //DrawZid(gl);
-                DrawBandera(gl);
-
-            
-
-
-                
-            gl.PopMatrix();
-
-            
-
-
+                DrawBandera(gl);   
+            gl.PopMatrix();     
 
             gl.PopMatrix();
 
@@ -352,7 +357,7 @@ namespace PF1S1._2
             //(redefinisati viewport korišćenjem glViewport metode).
             //Font je Arial, 14pt, underline. Tekst treba biti oblika:            
             DrawProjectInfo(gl);
-
+            
             gl.Flush();
         }
 
@@ -458,11 +463,19 @@ namespace PF1S1._2
         private void MoveAround(OpenGL gl)
         {
             //kontrole tastature
-            gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
-            gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
-            gl.Translate(m_xTranslation, 0f, 0f);
-            gl.Translate(0f, m_yTranslation, 0f);
-            gl.Translate(0f, 0f, m_zTranslation);
+            if (isLookAtCameraEnabled == false)
+            {
+                gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
+                gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
+                gl.Translate(m_xTranslation, 0f, 0f);
+                gl.Translate(0f, m_yTranslation, 0f);
+                gl.Translate(0f, 0f, m_zTranslation);
+            }
+            else
+            {
+                SetupCamera(gl);
+                lookAtCam.Project(gl);
+            }
         }
 
         private void DrawSphere(OpenGL gl)
@@ -501,18 +514,20 @@ namespace PF1S1._2
         public void DrawProjectInfo(OpenGL gl)
         {
             gl.PushMatrix();
-            gl.Viewport(m_width / 2, 0, m_width / 2, m_height / 2);
+            gl.Viewport(m_width /2, 0, m_width / 2, m_height / 2);
             int korak = m_width / 17;
             for (int i = 0; i < tekstProjekta.Length; i++)
             {
-                int x = m_width / 8;//Convert.ToInt32(m_width - 220);
-                int y = 10 + korak * i; //Convert.ToInt32(m_height * 0.05 + korak * i);
+                int x = m_width / 4 - 30;
+                int y = 12 + korak * i; //Convert.ToInt32(m_height * 0.05 + korak * i);
+                
                 gl.DrawText(x, y, 1.0f, 1.0f, 0.0f, "Arial", 14, tekstProjekta[i]);
-
-                string underline = new string('_', tekstProjekta[i].Length);
-                gl.DrawText(x, y, 1.0f, 1.0f, 0.0f, "Arial", 14, underline);
+                
+                string underline = new string('_', (tekstProjekta[i]).Length);
+                gl.DrawText(x, y, 1.0f, 1.0f, 0.0f, "Arial", 13, underline);
 
             }
+            
 
             gl.Viewport(0, 0, m_width, m_height);
             gl.PopMatrix();
@@ -532,21 +547,30 @@ namespace PF1S1._2
         /// </summary>
         public void UpdateCameraRotation(double deltaX, double deltaY)
         {
-            horizontalAngle += mouseSpeed * deltaX;
-            verticalAngle += mouseSpeed * deltaY;
+            //Moguce greksa
+            if(lookAtCam == null)
+            {
+                lookAtCam = new LookAtCamera();
+            }
+            if (isLookAtCameraEnabled)
+            {
+                horizontalAngle += mouseSpeed * deltaX;
+                verticalAngle += mouseSpeed * deltaY;
 
-            direction.X = (float)(Math.Cos(verticalAngle) * Math.Sin(horizontalAngle));
-            direction.Y = (float)(Math.Sin(verticalAngle));
-            direction.Z = (float)(Math.Cos(verticalAngle) * Math.Cos(horizontalAngle));
+                direction.X = (float)(Math.Cos(verticalAngle) * Math.Sin(horizontalAngle));
+                direction.Y = (float)(Math.Sin(verticalAngle));
+                direction.Z = (float)(Math.Cos(verticalAngle) * Math.Cos(horizontalAngle));
 
-            right.X = (float)Math.Sin(horizontalAngle - (Math.PI / 2));
-            right.Y = 0f;
-            right.Z = (float)Math.Cos(horizontalAngle - (Math.PI / 2));
+                right.X = (float)Math.Sin(horizontalAngle - (Math.PI / 2));
+                right.Y = 0f;
+                right.Z = (float)Math.Cos(horizontalAngle - (Math.PI / 2));
 
-            up = right.VectorProduct(direction);
+                up = right.VectorProduct(direction);
 
-            lookAtCam.Target = lookAtCam.Position + direction;
-            lookAtCam.UpVector = up;
+                lookAtCam.Target = lookAtCam.Position + direction;
+                lookAtCam.UpVector = up;
+                
+            }
         }
 
         /// <summary>
@@ -554,13 +578,16 @@ namespace PF1S1._2
         /// </summary>
         public void UpdateCameraPosition(int deltaX, int deltaY, int deltaZ)
         {
-            Vertex deltaForward = direction * deltaZ;
-            Vertex deltaStrafe = right * deltaX;
-            Vertex deltaUp = up * deltaY;
-            Vertex delta = deltaForward + deltaStrafe + deltaUp;
-            lookAtCam.Position += (delta * walkSpeed);
-            lookAtCam.Target = lookAtCam.Position + direction;
-            lookAtCam.UpVector = up;
+            if (isLookAtCameraEnabled)
+            {
+                Vertex deltaForward = direction * deltaZ;
+                Vertex deltaStrafe = right * deltaX;
+                Vertex deltaUp = up * deltaY;
+                Vertex delta = deltaForward + deltaStrafe + deltaUp;
+                lookAtCam.Position += (delta * walkSpeed);
+                lookAtCam.Target = lookAtCam.Position + direction;
+                lookAtCam.UpVector = up;
+            }
         }
 
         /// <summary>
