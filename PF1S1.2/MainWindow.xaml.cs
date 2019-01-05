@@ -16,6 +16,7 @@ using SharpGL.SceneGraph;
 using SharpGL;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using static PF1S1._2.World;
 
 namespace PF1S1._2
 {
@@ -51,17 +52,20 @@ namespace PF1S1._2
         public MainWindow()
         {
             InitializeComponent();
-
+            
             // Kreiranje OpenGL sveta
             try
             {
                 //TODO 3: nadje taj svet i da ga ubaci u bafer i iscrta
                 //TODO 4: pre ovog poziva u 3d modelima se misli da se u debug najde ili release folder iskompajliranom
+
                 String putanja_kamiona = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "3DModel\\kamion");
                 String putanja_kontejnera = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "3DModel\\kontejner");
+                
 
-                m_world = new World(new[] { putanja_kamiona, putanja_kontejnera}, new []{ "kamion.3DS", "kontejner.3DS"}, (int)openGLControl.Width, (int)openGLControl.Height, openGLControl.OpenGL);
-               
+                m_world = new World(new[] { putanja_kamiona, putanja_kontejnera}, new []{ "cat_truck.3DS", "kontejner.3DS"}, (int)openGLControl.Width, (int)openGLControl.Height, openGLControl.OpenGL);
+
+                this.DataContext = m_world;
             }
             catch (Exception e)
             {
@@ -114,7 +118,7 @@ namespace PF1S1._2
                 {
 
 
-                    case System.Windows.Input.Key.F10: this.Close(); break;
+                    case System.Windows.Input.Key.F4: this.Close(); break;
 
                     case System.Windows.Input.Key.W: m_world.RotationX -= 5.0f; break;
                     case System.Windows.Input.Key.S: m_world.RotationX += 5.0f; break;
@@ -129,8 +133,8 @@ namespace PF1S1._2
                     case System.Windows.Input.Key.Left: m_world.TranslationX -= 1.0f; break;
                     case System.Windows.Input.Key.Right: m_world.TranslationX += 1.0f; break;
 
-                    case System.Windows.Input.Key.Q: m_world.TranslationZ -= 5.0f; break;
-                    case System.Windows.Input.Key.E: m_world.TranslationZ += 5.0f; break;
+                    case System.Windows.Input.Key.OemPlus: m_world.TranslationZ -= 5.0f; break;
+                    case System.Windows.Input.Key.OemMinus: m_world.TranslationZ += 5.0f; break;
 
                 }
 
@@ -148,6 +152,11 @@ namespace PF1S1._2
                 }
             }
 
+            //prekidac za pokretanje animacije
+            if (e.Key.Equals(Key.V))
+            {
+                m_world.IsAnimationStarted = !m_world.IsAnimationStarted;
+            }
         }
 
         private void depthCheckBox_Click(object sender, RoutedEventArgs e)
@@ -168,6 +177,7 @@ namespace PF1S1._2
 
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
+
             if (LookAtCam.IsChecked.Value) {
                 bool outOfBoundsX = false;
                 bool outOfBoundsY = false;
@@ -182,6 +192,13 @@ namespace PF1S1._2
                     outOfBoundsX = true;
                 }
 
+                if (ToolBarTray.IsMouseOver)
+                {
+                    outOfBoundsY = false;
+                    outOfBoundsX = false;
+
+                    return;
+                }
                 if (!outOfBoundsY && !outOfBoundsX)
                 {
                     double deltaX = oldPos.X - point.X;
@@ -211,5 +228,181 @@ namespace PF1S1._2
         {
             m_world.isLookAtCameraEnabled = (bool)LookAtCam.IsChecked.Value;
         }
+
+        private void gluLookAt_Click(object sender, RoutedEventArgs e)
+        {
+            m_world.IsGluLookAtCameraEnabled = (bool)gluLookAt.IsChecked.Value;
+        }
+
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.BanderaHeight = (float) Bandera.Value;
+                                                 //MessageBox.Show(Bandera.Value.ToString());
+            }
+            catch(NullReferenceException nre)
+            {
+                //MessageBox.Show("Izuzetak");
+            }
+        }
+
+        private void KontejnerSkala_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.YetAnotherKontejnerScale = (float)KontejnerSkala.Value;
+            }
+            catch(NullReferenceException nre)
+            {
+
+            }
+        }
+
+        private void RedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.RedValueReflector = (float)RedSlider.Value;
+            }
+            catch (NullReferenceException nre)
+            {
+
+            }
+        }
+
+        private void GreenSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.GreenValueReflector = (float)GreenSlider.Value;
+            }
+            catch (NullReferenceException nre)
+            {
+
+            }
+
+        }
+
+        private void BlueSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.BlueValueReflector = (float)BlueSlider.Value;
+            }
+            catch (NullReferenceException nre)
+            {
+
+            }
+        }
+
+        private void shadingMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            m_world.SelectedShadingMode = (ShadingMode) shadingMode.SelectedIndex;
+            openGLControl.Focus();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            shadingMode.ItemsSource = Enum.GetValues(typeof(ShadingMode));
+        }
+
+        private void PodlogaTexCoordX_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.PodlogaTexCoord_x = (float) PodlogaTexCoordX.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void PodlogaTexCoordY_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.PodlogaTexCoord_y = (float) PodlogaTexCoordY.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+        
+
+        private void X_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.X_translateDebug = (float) X_translate.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void Y_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.Y_translateDebug = (float)Y_translate.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void Z_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.Z_translateDebug = (float)Z_translate.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void X_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.X_scaleDebug = (float)X_scale.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void Y_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.Y_scaleDebug = (float)Y_scale.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+
+        private void Z_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                m_world.Z_scaleDebug = (float)Z_scale.Value;
+            }
+            catch (NullReferenceException)
+            {
+
+            }
+        }
+        
     }
 }

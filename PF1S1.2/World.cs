@@ -10,6 +10,9 @@ using SharpGL.SceneGraph;
 using AssimpSample;
 using SharpGL.SceneGraph.Cameras;
 using System.Drawing;
+using System.Windows;
+using System.Drawing.Imaging;
+using System.Windows.Threading;
 
 namespace PF1S1._2
 {
@@ -23,12 +26,42 @@ namespace PF1S1._2
         private DisplayList podlogaDisplayList = new DisplayList();
         private uint podlogaID = 0;
 
+        private DispatcherTimer timer1;
 
+        private bool isAnimationStarted = false;
+
+        /// <summary>
+        ///	 Izabrani tip teselacije.
+        /// </summary>
+        private ShadingMode m_selectedShadingMode;
+
+        private double yetAnotherKontejnerScale = 1.0f;
+
+
+        private static readonly int m_textureCount = Enum.GetNames(typeof(TextureObjects)).Length;
+        /// <summary>
+        ///  Identifikator teksture
+        /// </summary>
+        private uint[] textureIDs = new uint[m_textureCount];
+
+
+
+        private String[] m_textureFiles = {"textures\\asphalt.jpg", "textures\\bricks.jpg", "textures\\metal.jpg" };
+
+
+        private enum TextureObjects { Asphalt = 0, Bricks, Metal};
+
+
+
+        private float podlogaTexCoord_x = 1.0f;
+        private float podlogaTexCoord_y = 1.0f;
         /// <summary>
         /// Indikator da li je lookAtCamera podesena 
         /// </summary>
         public bool isLookAtCameraEnabled = false;
 
+
+        private OpenGL gl;
 
         /// <summary>
         ///  Indikator stanja mehanizma sakrivanja nevidljivih povrsina.
@@ -92,12 +125,51 @@ namespace PF1S1._2
         ///	 Mreza za iscrtavanje
         /// </summary>
         Grid grid;
+        private float bandera_height = 3.0f;
 
+
+        private float red_value_reflector = 1.0f;
+        private float green_value_reflector = 0.0f;
+        private float blue_value_reflector = 0.0f;
+
+        /// <summary>
+        ///  Nabrojani tip OpenGL podrzanih tipova sencenja
+        /// </summary>
+        public enum ShadingMode
+        {
+            Flat,
+            Smooth
+        };
 
         #endregion
 
         #region Properties
 
+        /// <summary>
+        ///	 Izabrani tip sencenja.
+        /// </summary>
+        public ShadingMode SelectedShadingMode
+        {
+            get { return m_selectedShadingMode; }
+            set
+            {
+                m_selectedShadingMode = value;
+            }
+        }
+
+
+
+        public float BanderaHeight
+        {
+            get
+            {
+                return bandera_height;
+            }
+            set
+            {
+                bandera_height = value;
+            }
+        }
         /// <summary>
         ///  Indikator stanja mehanizma sakrivanja nevidljivih povrsina.
         /// </summary>
@@ -189,6 +261,96 @@ namespace PF1S1._2
             set { m_zTranslation = value; }
         }
 
+        public double YetAnotherKontejnerScale
+        {
+            get
+            {
+                return yetAnotherKontejnerScale;
+            }
+            set
+            {
+                yetAnotherKontejnerScale = value;
+            }
+        }
+
+        public float RedValueReflector
+        {
+            get
+            {
+                return red_value_reflector;
+            }
+            set
+            {
+                red_value_reflector = value;
+            }
+        }
+        public float GreenValueReflector
+        {
+            get
+            {
+                return green_value_reflector;
+            }
+            set
+            {
+                green_value_reflector = value;
+            }
+        }
+        public float BlueValueReflector
+        {
+            get
+            {
+                return blue_value_reflector;
+            }
+            set
+            {
+                blue_value_reflector = value;
+            }
+        }
+
+        public bool IsGluLookAtCameraEnabled
+        {
+            get
+            {
+                return isGluLookAtCameraEnabled;
+            }
+
+            set
+            {
+                isGluLookAtCameraEnabled = value;
+            }
+        }
+
+        public float PodlogaTexCoord_y
+        {
+            get
+            {
+                return podlogaTexCoord_y;
+            }
+            set
+            {
+                podlogaTexCoord_y = value;
+            }
+        }
+        public float PodlogaTexCoord_x
+        {
+            get
+            {
+                return podlogaTexCoord_x;
+            }
+
+            set
+            {
+                podlogaTexCoord_x = value;
+            }
+        }
+
+        public bool IsAnimationStarted { get => isAnimationStarted; set => isAnimationStarted = value; }
+        public float X_translateDebug { get; internal set; }
+        public float Z_translateDebug { get; internal set; }
+        public float Y_translateDebug { get; internal set; }
+        public float Z_scaleDebug { get; internal set; }
+        public float Y_scaleDebug { get; internal set; }
+        public float X_scaleDebug { get; internal set; }
 
         #endregion
 
@@ -222,7 +384,15 @@ namespace PF1S1._2
         /// </summary>
         public void Initialize(OpenGL gl)
         {
-            
+
+            this.gl = gl;
+            gl.Enable(OpenGL.GL_COLOR_MATERIAL);
+
+            gl.ColorMaterial(OpenGL.GL_FRONT, OpenGL.GL_AMBIENT_AND_DIFFUSE);
+
+
+            SetUpLighting(gl);
+        
             kamion_scene.LoadScene();
             kamion_scene.Initialize();
 
@@ -231,8 +401,232 @@ namespace PF1S1._2
 
             if(isLookAtCameraEnabled)
                 SetupCamera(gl);
+
+            SetupTexture(gl);
+            
+            gl.ClearColor(0f, 0f, 0f, 1.0f);
+
+
+            //podesavanje animacije
+            timer1 = new DispatcherTimer();
+            timer1.Interval = TimeSpan.FromMilliseconds(20);
+            timer1.Tick += new EventHandler(UpdateKamionPosition);
+            timer1.Start();
         }
 
+
+        private float kamion_up = 0.0f;
+        private float kamion_rotate_right = 0.0f;
+        private float kamion_right = 0.0f;
+        private float brojac_kamion = 1.0f;
+        private float vrata_rotate = 0.0f;
+
+        private enum KamionState
+        {
+            NAPRED, DESNO_DO_STOJ, STOJ, DESNO_OD_STOJ, NAZAD, OTVORI_VRATA, ZATVORI_VRATA
+        }
+
+        private KamionState currentKamionState = KamionState.NAPRED;
+        private void UpdateKamionPosition(object sender, EventArgs e)
+        {
+            if (isAnimationStarted)
+            {
+
+                switch (currentKamionState)
+                {
+                    case (KamionState.NAPRED):
+                        {
+                            //idem napred
+                            kamion_up += 0.1f;
+                            if (kamion_up > POLU_DUZINA + (YetAnotherKontejnerScale * (POLU_DUZINA / 4)))
+                            {
+                                currentKamionState = KamionState.DESNO_DO_STOJ;
+                            }
+                            break;
+                        }
+                    case (KamionState.DESNO_DO_STOJ):
+                        {
+                            kamion_rotate_right = 90f;
+                            //kamion_up = 0;
+                            kamion_right += 0.1f;
+
+                            double predjeni_put_desno = YetAnotherKontejnerScale * (POLU_DUZINA / 2);
+
+                            
+                            if (kamion_right > predjeni_put_desno / 2)
+                            {
+                                currentKamionState = KamionState.STOJ;
+                            }
+
+                            break;
+                        }
+                    case (KamionState.STOJ):
+                        {
+                            brojac_kamion -= 0.1f;
+                            if (brojac_kamion < 0)
+                            {
+                                currentKamionState = KamionState.OTVORI_VRATA;
+                            }
+                            break;
+                        }
+
+                    case (KamionState.OTVORI_VRATA):
+                        {
+                            vrata_rotate -= 1.0f;
+                            if (vrata_rotate < -45.0f)
+                            {
+                                currentKamionState = KamionState.ZATVORI_VRATA;
+                            }
+                            break;
+                        }
+                    case (KamionState.ZATVORI_VRATA):
+                        {
+                            vrata_rotate += 1.0f;
+                            if (vrata_rotate > 0.0f)
+                            {
+                                currentKamionState = KamionState.DESNO_OD_STOJ;
+                            }
+                            break;
+                        }
+                    case (KamionState.DESNO_OD_STOJ):
+                        {
+                            kamion_rotate_right = 90f;
+                            //kamion_up = 0;
+                            kamion_right += 0.1f;
+
+                            double predjeni_put_desno = YetAnotherKontejnerScale * (POLU_DUZINA / 2);
+
+                            if (kamion_right > predjeni_put_desno)
+                            {
+                                currentKamionState = KamionState.NAZAD;
+                                return;
+                            }
+
+
+                            break;
+                        }
+                    case (KamionState.NAZAD):
+                        {
+                            kamion_rotate_right = 180f;
+                            kamion_up -= 0.1f;
+                            //kamion_right = 0.0f;
+                            if (kamion_up < 0)
+                            {
+                                currentKamionState = KamionState.NAPRED;
+                                kamion_up = 0f;
+                                kamion_rotate_right = 0f;
+                                kamion_right = 0f;
+                                vrata_rotate = 0f;
+                                brojac_kamion = 1.0f;
+                            }
+                            break;
+                        }
+                }
+
+            }
+            else
+            {
+                currentKamionState = KamionState.NAPRED;
+                kamion_up = 0f;
+                kamion_rotate_right = 0f;
+                kamion_right = 0f;
+                vrata_rotate = 0f;
+                brojac_kamion = 1.0f;
+            }
+        }
+
+        private void SetupTexture(OpenGL gl)
+        {
+            gl.Enable(OpenGL.GL_TEXTURE_2D);
+
+            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_R, OpenGL.GL_REPEAT);
+            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_REPEAT);
+            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR_MIPMAP_LINEAR);
+            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
+
+            gl.TexEnv(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_MODULATE);
+            // Ucitaj slike i izgenerisi teksture
+            gl.GenTextures(m_textureCount, textureIDs);
+
+            for (int i = 0; i < m_textureCount; i++)
+            {
+                // Pridruzi teksturu odgovarajucem identifikatoru                 
+                gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[i]);
+
+
+                String currentDirectory = System.IO.Directory.GetCurrentDirectory();
+
+                String filePath = System.IO.Path.Combine(currentDirectory, m_textureFiles[i]);
+                // Ucitaj sliku i podesi parametre teksture                 
+                Bitmap image = new Bitmap(m_textureFiles[i]);
+                // rotiramo sliku zbog koordinantog sistema opengl-a            
+                image.RotateFlip(RotateFlipType.RotateNoneFlipY);
+                Rectangle rect = new Rectangle(0, 0, image.Width, image.Height);
+                // RGBA format (dozvoljena providnost slike tj. alfa kanal)        
+                BitmapData imageData = image.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb); 
+
+                gl.Build2DMipmaps(OpenGL.GL_TEXTURE_2D, (int)OpenGL.GL_RGBA8, image.Width, image.Height, OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, imageData.Scan0);
+
+                gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_R, OpenGL.GL_REPEAT);
+                gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_REPEAT);
+                gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR_MIPMAP_LINEAR);
+                gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
+
+                image.UnlockBits(imageData);
+                image.Dispose();
+            }
+
+        }
+
+        private void SetUpLighting(OpenGL gl)
+        {
+            float[] global_ambient = new float[] { 0.5f, 0.5f, 0.5f, 0.5f };
+            gl.LightModel(OpenGL.GL_LIGHT_MODEL_AMBIENT, global_ambient);
+
+            //TODO 1B: Podesavanje crvenog tackastog izvora
+            float[] light0pos = new float[] { 0.0f, BanderaHeight, (float)-(2 * POLU_DUZINA), 1.0f };
+            float[] ambijentalnaKomponenta = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] difuznaKomponenta = { 1.0f, 0.0f, 0.0f, 1.0f };
+            gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light0pos);
+            gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_SPOT_CUTOFF, 180.0f);
+            gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_AMBIENT, ambijentalnaKomponenta);
+            gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_DIFFUSE, difuznaKomponenta);
+
+
+            //TODO 2B: Podesavanje crvenog reflektorskog 35deg izvora sa podesivom ambijentalnom komponentom
+            float[] light1pos = new float[] { POLU_DUZINA/2, 2.0f, (float)-(2 * POLU_DUZINA), 1.0f };
+            float[] ambijentalnaKomponenta1 = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] difuznaKomponenta1 = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] light1direction = {0.0f, -1.0f,0.0f,1.0f };
+
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_POSITION, light1pos);
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_SPOT_CUTOFF, 35.0f);
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_AMBIENT, ambijentalnaKomponenta1);
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_DIFFUSE, difuznaKomponenta1);
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_SPOT_DIRECTION, light1direction);
+            
+            gl.Enable(OpenGL.GL_LIGHTING);
+
+
+            gl.Enable(OpenGL.GL_LIGHT0);             
+            gl.Enable(OpenGL.GL_LIGHT1);
+
+
+            gl.Enable(OpenGL.GL_NORMALIZE);
+        }
+
+        private void SetUpBanderaLightingHeight(OpenGL gl)
+        {
+            float[] light0pos = new float[] { 0.0f, BanderaHeight, (float)-(2 * POLU_DUZINA), 1.0f };
+            gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light0pos);
+        }
+
+
+        private void SetUpReflectorColorLighting(OpenGL gl)
+        {
+            float[] ambijentalnaKomponenta1 = { RedValueReflector, GreenValueReflector, BlueValueReflector, 1.0f };
+            gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_AMBIENT, ambijentalnaKomponenta1);
+        }
         private void SetupCamera(OpenGL gl)
         {
             if (lookAtCam == null)
@@ -272,7 +666,7 @@ namespace PF1S1._2
             //inicijalizacija displayliste
             podlogaID = gl.GenLists(1);
             gl.NewList(podlogaID, OpenGL.GL_COMPILE);
-            DrawPodloga(gl);
+            
             gl.EndList();
         }
 
@@ -282,57 +676,33 @@ namespace PF1S1._2
         /// </summary>
         public void Draw(OpenGL gl)
         {
-            
             gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
             gl.MatrixMode(OpenGL.GL_MODELVIEW);
             gl.LoadIdentity();
 
 
-            // Ako je izabrano back face culling ukljuci ga i obratno
-            if (m_culling == true)
+            setShadingMode(gl);
+            setCulling(gl);
+            setDepthTesting(gl);
+            setOutline(gl);
+            
+
+            float[] eyeVector = { 0, 0.5f, -2*POLU_DUZINA - POLU_DUZINA/4 };
+            float[] centerVector = {-100,0,0 };
+            float[] upVector = { 0, 1, 0 };
+
+
+            if (isGluLookAtCameraEnabled == true)
             {
-                gl.Enable(OpenGL.GL_CULL_FACE);
-            }
-            else
-            {
-                gl.Disable(OpenGL.GL_CULL_FACE);
+                gl.LookAt(eyeVector[0], eyeVector[1], eyeVector[2],
+                    centerVector[0], centerVector[1], centerVector[2],
+                    upVector[0], upVector[1], upVector[2]);
             }
 
-            // Ako je izabrano testiranje dubine ukljuci ga i obratno
-            if (m_depthTesting == true)
-            {
-                gl.Enable(OpenGL.GL_DEPTH_TEST);
-            }
-            else
-            {
-                gl.Disable(OpenGL.GL_DEPTH_TEST);
-            }
-
-            // Ako je izabran rezim iscrtavanja objekta kao wireframe, ukljuci ga i obratno
-            if (m_outline == true)
-            {
-                // Iscrtati ceo objekat kao zicani model.
-                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
-            }
-            else
-            { 
-                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
-            }
+            SetUpBanderaLightingHeight(gl);
+            SetUpReflectorColorLighting(gl);
 
 
-
-            //gl.Viewport(0, 0, m_width, m_height);
-            //gl.MatrixMode(OpenGL.GL_PROJECTION);
-            //gl.LoadIdentity();
-
-            //gl.Perspective(45f, (double)m_width / m_height, 1f, 100f);
-
-
-
-
-
-            //TODO posle brisanja  lookAtCam otkomentarisati
-            //lookAtCam.Project(gl);
             MoveAround(gl);
 
             gl.PushMatrix();
@@ -341,13 +711,17 @@ namespace PF1S1._2
             
             gl.PushMatrix();
                 gl.Translate(0f, 0f, (float)-(2*POLU_DUZINA));
+
+               
                 DrawKamion(gl);
                 DrawKontejner(gl);          
                 //crtanje podloge
                 gl.Color(0.8f, 0.8f, 0.8f);
                 gl.CallList(podlogaID);            
                 //DrawZid(gl);
-                DrawBandera(gl);   
+                DrawBandera(gl);
+
+                DrawPodloga(gl);
             gl.PopMatrix();     
 
             gl.PopMatrix();
@@ -356,26 +730,33 @@ namespace PF1S1._2
             //3. Ispisati 2D tekst žutom bojom u donjem desnom uglu prozora 
             //(redefinisati viewport korišćenjem glViewport metode).
             //Font je Arial, 14pt, underline. Tekst treba biti oblika:            
-            DrawProjectInfo(gl);
+            //DrawProjectInfo(gl);
             
             gl.Flush();
         }
+        
 
-
+        #region draw_nesto
         private double scaleKontejner = 2 * 10e-4;
+        private bool isGluLookAtCameraEnabled;
+
         private void DrawKontejner(OpenGL gl)
         {
             gl.PushMatrix();
-            gl.Translate(POLU_DUZINA / 2, 0.1f, 0f);
-
-            gl.PushMatrix();
-            gl.Scale(scaleKontejner, scaleKontejner, scaleKontejner);
-            kontejner_scene.Draw();
-            gl.PopMatrix();
-
+                gl.Color(1, 1, 1);
+                gl.Translate(POLU_DUZINA / 2, 0.1f, 0f);
+                gl.Rotate(180.0f, 0, 1, 0);
+                //skaliranje kontejnera po wpf kontroli
+                gl.Scale(YetAnotherKontejnerScale, YetAnotherKontejnerScale, YetAnotherKontejnerScale);
 
 
-            DrawZid(gl);
+                gl.PushMatrix();
+                    gl.Scale(scaleKontejner, scaleKontejner, scaleKontejner);
+                    
+                    kontejner_scene.Draw();
+                gl.PopMatrix();
+
+                DrawZid(gl);
             gl.PopMatrix();
 
             
@@ -383,15 +764,16 @@ namespace PF1S1._2
 
         private void DrawZid(OpenGL gl)
         {
+            
             gl.PushMatrix();
-            gl.Color(0f, 0f, 1f);
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Bricks]);
+
+            gl.Color(1f, 1f, 1f);
 
 
             //vrati skaliranje
             Cube cube = new Cube();
-
             
-
             //zid iza kontejnera
             gl.PushMatrix();
             gl.Translate(0.4f, 0.3f, 0f);
@@ -418,32 +800,90 @@ namespace PF1S1._2
             cube.Render(gl, RenderMode.Render);
             gl.PopMatrix();
 
-
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
             gl.PopMatrix();
+           
         }
 
         private void DrawKamion(OpenGL gl)
         {
             gl.PushMatrix();
-            gl.Translate(-POLU_DUZINA / 2, 0.1f, 0f);
-            gl.Rotate(-90f, 0f, 1f, 0f);
-            gl.Scale(0.4 * 10e-3, 0.4 * 10e-3, 0.4 * 10e-3);
+            gl.Color(1, 1, 1);
+            //TODO: ispraviti ako treba
+            // gl.Translate(-POLU_DUZINA / 2, 0.1f, 0f);
+            gl.Translate(-POLU_DUZINA / 2, 0.1f, (-POLU_DUZINA/4)* YetAnotherKontejnerScale);
+            gl.Translate(kamion_up, 0, kamion_right);
+            gl.Rotate(0, -kamion_rotate_right, 0);
+            DrawVrata(gl);
+
+            //gl.Rotate(-90f, 0f, 1f, 0f);
+            //gl.Scale(0.4 * 10e-3, 0.4 * 10e-3, 0.4 * 10e-3);
+            float scale_factor = 0.5f * 10e-2f;
+            gl.Scale(scale_factor, scale_factor, scale_factor);
             kamion_scene.Draw();
             gl.PopMatrix();
         }
 
+        private void DrawVrata(OpenGL gl)
+        {
+            
+            gl.PushMatrix();
+            gl.Color(1, 1, 1);
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Bricks]);
+            //gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Metal]);
+
+            gl.PushMatrix();
+            gl.Rotate(vrata_rotate, 0, 0);
+            gl.Scale(0.5, 0.25, 0.1);
+            
+            gl.Translate(-POLU_DUZINA/4, POLU_DUZINA / 2, POLU_DUZINA /2 + POLU_DUZINA / 4);
+            
+            Cube cube = new Cube();
+            cube.Render(gl, RenderMode.Render);
+
+            gl.PopMatrix();
+
+            //gl.Translate(-POLU_DUZINA / 4, POLU_DUZINA / 2 + POLU_DUZINA / 2, POLU_DUZINA / 2);
+            //gl.Translate(RedValueReflector, GreenValueReflector, BlueValueReflector);
+            //gl.Translate(X_translateDebug, Y_translateDebug, Z_translateDebug);
+            gl.Rotate(vrata_rotate, 0, 0);
+            gl.Translate(-0.4, 0.82, 0);
+            gl.PushMatrix();
+            
+            //gl.Scale(1, 0.2, 0.25);
+            //gl.Scale(X_scaleDebug, Y_scaleDebug, Z_scaleDebug);
+            gl.Scale(0.65, 0.1, 0.28);
+            
+            
+
+            Cube cubeTop = new Cube();
+            cubeTop.Render(gl, RenderMode.Render);
+
+            gl.PopMatrix();
+
+
+
+
+            gl.PopMatrix();
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
+        }
         private void DrawBandera(OpenGL gl)
         {
+
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Metal]);
+            gl.TexEnv(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_ADD);
             //crtanje bandere - Cylinder i  Cube
-            gl.Color(1f, 0f, 0f);
+            gl.Color(1f, 1f, 1f);
             //sipka bandere
             gl.PushMatrix();
+            
+
             gl.Translate(0f, 0.1f, 0f);
             gl.Rotate(-90f, 1f, 0f, 0f);
             Cylinder cylinder = new Cylinder();
             cylinder.TopRadius = 0.05f;
             cylinder.BaseRadius = cylinder.TopRadius;
-            cylinder.Height = 3f;
+            cylinder.Height = BanderaHeight;//3f;
             cylinder.CreateInContext(gl);
             cylinder.Render(gl, RenderMode.Render);
             gl.PopMatrix();
@@ -458,45 +898,42 @@ namespace PF1S1._2
 
             cube.Render(gl, RenderMode.Render);
             gl.PopMatrix();
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
         }
+        
 
-        private void MoveAround(OpenGL gl)
-        {
-            //kontrole tastature
-            if (isLookAtCameraEnabled == false)
-            {
-                gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
-                gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
-                gl.Translate(m_xTranslation, 0f, 0f);
-                gl.Translate(0f, m_yTranslation, 0f);
-                gl.Translate(0f, 0f, m_zTranslation);
-            }
-            else
-            {
-                SetupCamera(gl);
-                lookAtCam.Project(gl);
-            }
-        }
-
-        private void DrawSphere(OpenGL gl)
-        {
-            gl.Color(0f, 0f, 1f);
-            gl.PushMatrix();
-            Sphere sphere = new Sphere();
-            sphere.Radius = 0.5f;
-            sphere.CreateInContext(gl);
-            sphere.Render(gl, RenderMode.Render);
-            gl.PopMatrix();
-        }
+        private int brojac = 0;
         private void DrawPodloga(OpenGL gl)
         {
-            
+            //Podlozi pridružiti teksturu asfalta (slika koja se koristi za teksturu je jedan segmenat asfalta).
+            //Pritom obavezno skalirati teksturu. Skalirati teksturu (broj ponavljanja teksture) shodno potrebi.
+            //Skalirati teksturu korišćenjem Texture matrice. Definisati koordinate teksture.
+
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Asphalt]);
+            gl.Color(1f, 1f, 1f);
             gl.Begin(OpenGL.GL_QUADS);
-                gl.Vertex(-POLU_DUZINA, 0.1f, -POLU_DUZINA);
-                gl.Vertex(-POLU_DUZINA, 0.1f, POLU_DUZINA);
-                gl.Vertex( POLU_DUZINA, 0.1f, POLU_DUZINA);
-                gl.Vertex( POLU_DUZINA, 0.1f, -POLU_DUZINA); 
+                float duzina = POLU_DUZINA;
+                gl.Normal(LightingUtilities.
+                    FindFaceNormal(-duzina, 0.1f, -duzina,
+                                   -duzina, 0.1f, duzina,
+                                   duzina, 0.1f, duzina));
+            
+                
+            
+                gl.TexCoord(0.0f, 0.0f);
+                gl.Vertex(-duzina, 0.1f, -duzina);
+
+            
+                gl.TexCoord(0.0f, PodlogaTexCoord_y);
+                gl.Vertex(-duzina, 0.1f, duzina);
+
+                gl.TexCoord(PodlogaTexCoord_x, PodlogaTexCoord_y);
+                gl.Vertex( duzina, 0.1f, duzina);
+
+                gl.TexCoord(PodlogaTexCoord_x, 0.0f);
+                gl.Vertex( duzina, 0.1f, -duzina); 
             gl.End();
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
         }
         /// <summary>
         ///  Iscrtavanje SharpGL primitive grida.
@@ -533,14 +970,34 @@ namespace PF1S1._2
             gl.PopMatrix();
         }
 
-        /// <summary>
-        ///  Funkcija ograničava vrednost na opseg min - max
-        /// </summary>
-        public static float Clamp(float value, float min, float max)
-        {
-            return (value < min) ? min : (value > max) ? max : value;
-        }
+        #endregion draw_nesto
+        
 
+
+        #region pomeraj_kamere
+        private void MoveAround(OpenGL gl)
+        {
+            //kontrole tastature
+            if(isGluLookAtCameraEnabled == true)
+            {
+                gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
+                gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
+                gl.Translate(0f, 0f, m_zTranslation);
+            }
+            else if (isLookAtCameraEnabled == false)
+            {
+                gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
+                gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
+                gl.Translate(m_xTranslation, 0f, 0f);
+                gl.Translate(0f, m_yTranslation, 0f);
+                gl.Translate(0f, 0f, m_zTranslation);
+            }
+            else
+            {
+                SetupCamera(gl);
+                lookAtCam.Project(gl);
+            }
+        }
 
         /// <summary>
         ///  Azurira rotaciju kamere preko pomeraja misa
@@ -589,6 +1046,66 @@ namespace PF1S1._2
                 lookAtCam.UpVector = up;
             }
         }
+        #endregion pomeraj_kamere
+        #endregion
+
+
+        #region glupe_set_metode
+
+        public void setShadingMode(OpenGL gl)
+        {
+            if (m_selectedShadingMode == ShadingMode.Flat)
+            {
+                gl.ShadeModel(OpenGL.GL_FLAT);
+            }
+            else
+            {
+                gl.ShadeModel(OpenGL.GL_SMOOTH);
+            }
+        }
+
+        private void setOutline(OpenGL gl)
+        {
+            // Ako je izabran rezim iscrtavanja objekta kao wireframe, ukljuci ga i obratno
+            if (m_outline == true)
+            {
+                // Iscrtati ceo objekat kao zicani model.
+                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_LINE);
+            }
+            else
+            {
+                gl.PolygonMode(OpenGL.GL_FRONT_AND_BACK, OpenGL.GL_FILL);
+            }
+        }
+
+        private void setDepthTesting(OpenGL gl)
+        {
+            // Ako je izabrano testiranje dubine ukljuci ga i obratno
+            if (m_depthTesting == true)
+            {
+                gl.Enable(OpenGL.GL_DEPTH_TEST);
+            }
+            else
+            {
+                gl.Disable(OpenGL.GL_DEPTH_TEST);
+            }
+        }
+
+        private void setCulling(OpenGL gl)
+        {
+            // Ako je izabrano back face culling ukljuci ga i obratno
+            if (m_culling == true)
+            {
+                gl.Enable(OpenGL.GL_CULL_FACE);
+            }
+            else
+            {
+                gl.Disable(OpenGL.GL_CULL_FACE);
+            }
+        }
+
+        #endregion glupe_metode
+        #region IDisposable Metode
 
         /// <summary>
         ///  Dispose metoda.
@@ -606,11 +1123,6 @@ namespace PF1S1._2
         {
             this.Dispose(false);
         }
-
-        #endregion
-
-        #region IDisposable Metode
-
         /// <summary>
         ///  Implementacija IDisposable interfejsa.
         /// </summary>
@@ -628,5 +1140,8 @@ namespace PF1S1._2
         }
 
         #endregion
+
+
+        
     }
 }
