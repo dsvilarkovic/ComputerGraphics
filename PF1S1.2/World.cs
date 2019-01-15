@@ -921,12 +921,15 @@ namespace PF1S1._2
             //Pritom obavezno skalirati teksturu. Skalirati teksturu (broj ponavljanja teksture) shodno potrebi.
             //Skalirati teksturu korišćenjem Texture matrice. Definisati koordinate teksture.
 
-            gl.Enable(OpenGL.GL_TEXTURE_2D);
+
             gl.Color(1f, 1f, 1f);
+            gl.Enable(OpenGL.GL_TEXTURE_2D);
+            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Asphalt]);            
             gl.MatrixMode(OpenGL.GL_TEXTURE);
-            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Asphalt]);
+            
             gl.Scale(PodlogaTexCoord_x, PodlogaTexCoord_y, 1f);
-            gl.MatrixMode(OpenGL.GL_MODELVIEW);
+            
+            
 
             gl.Begin(OpenGL.GL_QUADS);
                 float duzina = POLU_DUZINA*  (float) YetAnotherKontejnerScale;
@@ -956,6 +959,8 @@ namespace PF1S1._2
                 gl.TexCoord(1.0f, 0.0f);
                 gl.Vertex( duzina, 0.1f, -duzina); 
             gl.End();
+            gl.LoadIdentity();
+            gl.MatrixMode(OpenGL.GL_MODELVIEW);
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
             
         }
