@@ -63,7 +63,7 @@ namespace PF1S1._2
                 String putanja_kontejnera = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "3DModel\\kontejner");
                 
 
-                m_world = new World(new[] { putanja_kamiona, putanja_kontejnera}, new []{ "cat_truck.3DS", "kontejner.3DS"}, (int)openGLControl.Width, (int)openGLControl.Height, openGLControl.OpenGL);
+                m_world = new World(new[] { putanja_kamiona, putanja_kontejnera}, new []{ "toy_truck.obj", "container.obj" }, (int)openGLControl.Width, (int)openGLControl.Height, openGLControl.OpenGL);
 
                 this.DataContext = m_world;
             }
@@ -112,7 +112,7 @@ namespace PF1S1._2
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (LookAtCam.IsChecked == false)
+            if (LookAt.IsChecked == false)
             {
                 switch (e.Key)
                 {
@@ -133,8 +133,8 @@ namespace PF1S1._2
                     case System.Windows.Input.Key.Left: m_world.TranslationX -= 1.0f; break;
                     case System.Windows.Input.Key.Right: m_world.TranslationX += 1.0f; break;
 
-                    case System.Windows.Input.Key.OemPlus: m_world.TranslationZ -= 5.0f; break;
-                    case System.Windows.Input.Key.OemMinus: m_world.TranslationZ += 5.0f; break;
+                    case System.Windows.Input.Key.OemPlus: m_world.TranslationZ -= 1.0f; break;
+                    case System.Windows.Input.Key.OemMinus: m_world.TranslationZ += 1.0f; break;
 
                 }
 
@@ -178,7 +178,7 @@ namespace PF1S1._2
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
 
-            if (LookAtCam.IsChecked.Value) {
+            if (LookAt.IsChecked.Value) {
                 bool outOfBoundsX = false;
                 bool outOfBoundsY = false;
                 Point point = e.GetPosition(this);
@@ -224,16 +224,7 @@ namespace PF1S1._2
             }
         }
 
-        private void LookAtCam_Click(object sender, RoutedEventArgs e)
-        {
-            m_world.isLookAtCameraEnabled = (bool)LookAtCam.IsChecked.Value;
-        }
-
-        private void gluLookAt_Click(object sender, RoutedEventArgs e)
-        {
-            m_world.IsGluLookAtCameraEnabled = (bool)gluLookAt.IsChecked.Value;
-        }
-
+        
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             try
@@ -403,6 +394,27 @@ namespace PF1S1._2
 
             }
         }
-        
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            MessageBox.Show("Scale: " + X_scale.Value + "|" + Y_scale.Value + "|" + Z_scale.Value + "\n"+
+                "Translate: " + X_translate.Value + "|" + Y_translate.Value + "|" + Z_translate.Value);
+        }
+
+        private void LookAt_Click(object sender, RoutedEventArgs e)
+        {
+            m_world.isLookAtCameraEnabled = (bool)LookAt.IsChecked.Value;
+        }
+
+        private void gluLookAt_Click_1(object sender, RoutedEventArgs e)
+        {
+            m_world.IsGluLookAtCameraEnabled = (bool)gluLookAt.IsChecked.Value;
+        }
+
+        private void Regular_Click(object sender, RoutedEventArgs e)
+        {
+            m_world.isLookAtCameraEnabled = false;
+            m_world.IsGluLookAtCameraEnabled = false;
+        }
     }
 }

@@ -128,7 +128,9 @@
     </EmbeddedResource>
     <None Include="3DModel\kamion\cat_truck.3DS" />
     <None Include="3DModel\kamion\kamion.3DS" />
+    <None Include="3DModel\kamion\kamion.obj" />
     <None Include="3DModel\kontejner\kontejner.3DS" />
+    <None Include="3DModel\kontejner\kontejner.obj" />
     <None Include="app.config" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

@@ -539,12 +539,14 @@ namespace PF1S1._2
         {
             gl.Enable(OpenGL.GL_TEXTURE_2D);
 
+            /*
             gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_R, OpenGL.GL_REPEAT);
             gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_REPEAT);
             gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR_MIPMAP_LINEAR);
             gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
+            */
 
-            gl.TexEnv(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_MODULATE);
+            gl.TexEnv(OpenGL.GL_TEXTURE_ENV, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_MODULATE);
             // Ucitaj slike i izgenerisi teksture
             gl.GenTextures(m_textureCount, textureIDs);
 
@@ -567,20 +569,22 @@ namespace PF1S1._2
 
                 gl.Build2DMipmaps(OpenGL.GL_TEXTURE_2D, (int)OpenGL.GL_RGBA8, image.Width, image.Height, OpenGL.GL_BGRA, OpenGL.GL_UNSIGNED_BYTE, imageData.Scan0);
 
+                //ponavljanje po R i S kordinatama
                 gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_R, OpenGL.GL_REPEAT);
                 gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_REPEAT);
+                //filteri mipmap linerano filtriranje
                 gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR_MIPMAP_LINEAR);
                 gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
 
                 image.UnlockBits(imageData);
                 image.Dispose();
             }
-
+            gl.Disable(OpenGL.GL_TEXTURE_2D);
         }
 
         private void SetUpLighting(OpenGL gl)
         {
-            float[] global_ambient = new float[] { 0.5f, 0.5f, 0.5f, 0.5f };
+            float[] global_ambient = new float[] { 1f, 1f, 1f, 1f };
             gl.LightModel(OpenGL.GL_LIGHT_MODEL_AMBIENT, global_ambient);
 
             //TODO 1B: Podesavanje crvenog tackastog izvora
@@ -605,11 +609,11 @@ namespace PF1S1._2
             gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_DIFFUSE, difuznaKomponenta1);
             gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_SPOT_DIRECTION, light1direction);
             
-            gl.Enable(OpenGL.GL_LIGHTING);
+            //gl.Enable(OpenGL.GL_LIGHTING);
 
 
-            gl.Enable(OpenGL.GL_LIGHT0);             
-            gl.Enable(OpenGL.GL_LIGHT1);
+            //gl.Enable(OpenGL.GL_LIGHT0);             
+            //gl.Enable(OpenGL.GL_LIGHT1);
 
 
             gl.Enable(OpenGL.GL_NORMALIZE);
@@ -617,13 +621,33 @@ namespace PF1S1._2
 
         private void SetUpBanderaLightingHeight(OpenGL gl)
         {
+            /*
+            gl.PushMatrix();
+            gl.Translate(0, BanderaHeight, 0);
+            gl.Scale(0.3f, 0.3f, 0.3f);
+            Cube cube = new Cube();
+            cube.Render(gl, RenderMode.Render);
+            gl.PopMatrix();
+            */
             float[] light0pos = new float[] { 0.0f, BanderaHeight, (float)-(2 * POLU_DUZINA), 1.0f };
+            //float[] light0pos = new float[] { 0.0f, BanderaHeight, 0, 1.0f };
             gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light0pos);
         }
 
 
         private void SetUpReflectorColorLighting(OpenGL gl)
         {
+            /*
+            gl.PushMatrix();
+            gl.Translate(POLU_DUZINA / 2, 2.0f, (float)-(2 * POLU_DUZINA));
+            gl.Scale(0.3f, 0.3f, 0.3f);
+            Cube cube = new Cube();
+            cube.Render(gl, RenderMode.Render);
+            gl.PopMatrix();
+            */
+
+            //float[] light1pos = new float[] { POLU_DUZINA / 2, 2.0f, (float)-(2 * POLU_DUZINA), 1.0f };
+            //gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light1pos);
             float[] ambijentalnaKomponenta1 = { RedValueReflector, GreenValueReflector, BlueValueReflector, 1.0f };
             gl.Light(OpenGL.GL_LIGHT1, OpenGL.GL_AMBIENT, ambijentalnaKomponenta1);
         }
@@ -677,6 +701,7 @@ namespace PF1S1._2
         public void Draw(OpenGL gl)
         {
             gl.Clear(OpenGL.GL_COLOR_BUFFER_BIT | OpenGL.GL_DEPTH_BUFFER_BIT);
+            
             gl.MatrixMode(OpenGL.GL_MODELVIEW);
             gl.LoadIdentity();
 
@@ -687,7 +712,7 @@ namespace PF1S1._2
             setOutline(gl);
             
 
-            float[] eyeVector = { 0, 0.5f, -2*POLU_DUZINA - POLU_DUZINA/4 };
+            float[] eyeVector = { 2f, 0.5f, -2*POLU_DUZINA - POLU_DUZINA/4 };
             float[] centerVector = {-100,0,0 };
             float[] upVector = { 0, 1, 0 };
 
@@ -699,32 +724,25 @@ namespace PF1S1._2
                     upVector[0], upVector[1], upVector[2]);
             }
 
-            SetUpBanderaLightingHeight(gl);
+
+            
             SetUpReflectorColorLighting(gl);
 
 
-            MoveAround(gl);
-
-            gl.PushMatrix();
-            
-            gl.Color(0f, 1f, 0f);
-            
+                     
             gl.PushMatrix();
                 gl.Translate(0f, 0f, (float)-(2*POLU_DUZINA));
-
-               
-                DrawKamion(gl);
+                
+                MoveAround(gl);
+                SetUpBanderaLightingHeight(gl);                
                 DrawKontejner(gl);          
-                //crtanje podloge
-                gl.Color(0.8f, 0.8f, 0.8f);
                 gl.CallList(podlogaID);            
-                //DrawZid(gl);
                 DrawBandera(gl);
-
                 DrawPodloga(gl);
-            gl.PopMatrix();     
+                DrawKamion(gl);
 
-            gl.PopMatrix();
+            gl.PopMatrix();     
+            
 
 
             //3. Ispisati 2D tekst žutom bojom u donjem desnom uglu prozora 
@@ -737,14 +755,13 @@ namespace PF1S1._2
         
 
         #region draw_nesto
-        private double scaleKontejner = 2 * 10e-4;
+        private double scaleKontejner = 0.6* 2 * 10e-3;
         private bool isGluLookAtCameraEnabled;
 
         private void DrawKontejner(OpenGL gl)
         {
             gl.PushMatrix();
-                gl.Color(1, 1, 1);
-                gl.Translate(POLU_DUZINA / 2, 0.1f, 0f);
+                gl.Translate(POLU_DUZINA / 2, 0.2f, 0f);
                 gl.Rotate(180.0f, 0, 1, 0);
                 //skaliranje kontejnera po wpf kontroli
                 gl.Scale(YetAnotherKontejnerScale, YetAnotherKontejnerScale, YetAnotherKontejnerScale);
@@ -752,7 +769,7 @@ namespace PF1S1._2
 
                 gl.PushMatrix();
                     gl.Scale(scaleKontejner, scaleKontejner, scaleKontejner);
-                    
+                   
                     kontejner_scene.Draw();
                 gl.PopMatrix();
 
@@ -767,10 +784,7 @@ namespace PF1S1._2
             
             gl.PushMatrix();
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Bricks]);
-
-            gl.Color(1f, 1f, 1f);
-
-
+            gl.TexEnv(OpenGL.GL_TEXTURE_ENV, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_MODULATE);
             //vrati skaliranje
             Cube cube = new Cube();
             
@@ -808,19 +822,20 @@ namespace PF1S1._2
         private void DrawKamion(OpenGL gl)
         {
             gl.PushMatrix();
-            gl.Color(1, 1, 1);
-            //TODO: ispraviti ako treba
-            // gl.Translate(-POLU_DUZINA / 2, 0.1f, 0f);
+
             gl.Translate(-POLU_DUZINA / 2, 0.1f, (-POLU_DUZINA/4)* YetAnotherKontejnerScale);
             gl.Translate(kamion_up, 0, kamion_right);
             gl.Rotate(0, -kamion_rotate_right, 0);
-            DrawVrata(gl);
 
-            //gl.Rotate(-90f, 0f, 1f, 0f);
-            //gl.Scale(0.4 * 10e-3, 0.4 * 10e-3, 0.4 * 10e-3);
+
+            gl.PushMatrix();
             float scale_factor = 0.5f * 10e-2f;
             gl.Scale(scale_factor, scale_factor, scale_factor);
+            gl.Rotate(-90, 0, 0);
             kamion_scene.Draw();
+            gl.PopMatrix();
+            DrawVrata(gl);
+
             gl.PopMatrix();
         }
 
@@ -828,53 +843,42 @@ namespace PF1S1._2
         {
             
             gl.PushMatrix();
-            gl.Color(1, 1, 1);
-            gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Bricks]);
-            //gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Metal]);
 
             gl.PushMatrix();
             gl.Rotate(vrata_rotate, 0, 0);
-            gl.Scale(0.5, 0.25, 0.1);
-            
-            gl.Translate(-POLU_DUZINA/4, POLU_DUZINA / 2, POLU_DUZINA /2 + POLU_DUZINA / 4);
+            gl.Scale(0.469f, 0.163f, 0.142f);
+            gl.Translate(-0.816f, 4.489f, 3.265f);
+
             
             Cube cube = new Cube();
+            //gl.Color(1f, 1f, 0f);
             cube.Render(gl, RenderMode.Render);
 
             gl.PopMatrix();
 
-            //gl.Translate(-POLU_DUZINA / 4, POLU_DUZINA / 2 + POLU_DUZINA / 2, POLU_DUZINA / 2);
-            //gl.Translate(RedValueReflector, GreenValueReflector, BlueValueReflector);
-            //gl.Translate(X_translateDebug, Y_translateDebug, Z_translateDebug);
             gl.Rotate(vrata_rotate, 0, 0);
             gl.Translate(-0.4, 0.82, 0);
-            gl.PushMatrix();
-            
-            //gl.Scale(1, 0.2, 0.25);
-            //gl.Scale(X_scaleDebug, Y_scaleDebug, Z_scaleDebug);
-            gl.Scale(0.65, 0.1, 0.28);
-            
-            
 
+            gl.PushMatrix();
+            gl.Scale(0.51f, 0.08f, 0.387f);
+            
+            
             Cube cubeTop = new Cube();
             cubeTop.Render(gl, RenderMode.Render);
 
             gl.PopMatrix();
 
 
-
-
             gl.PopMatrix();
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
+            //gl.Color(1f, 1f, 1f);
         }
         private void DrawBandera(OpenGL gl)
         {
 
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Metal]);
-            gl.TexEnv(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_ADD);
-            //crtanje bandere - Cylinder i  Cube
-            gl.Color(1f, 1f, 1f);
-            //sipka bandere
+            gl.TexEnv(OpenGL.GL_TEXTURE_ENV, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_ADD);
+
             gl.PushMatrix();
             
 
@@ -901,39 +905,50 @@ namespace PF1S1._2
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
         }
         
-
-        private int brojac = 0;
+        
         private void DrawPodloga(OpenGL gl)
         {
             //Podlozi pridružiti teksturu asfalta (slika koja se koristi za teksturu je jedan segmenat asfalta).
             //Pritom obavezno skalirati teksturu. Skalirati teksturu (broj ponavljanja teksture) shodno potrebi.
             //Skalirati teksturu korišćenjem Texture matrice. Definisati koordinate teksture.
 
+            gl.Enable(OpenGL.GL_TEXTURE_2D);
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, textureIDs[(int)TextureObjects.Asphalt]);
-            gl.Color(1f, 1f, 1f);
+            gl.MatrixMode(OpenGL.GL_TEXTURE);
+            gl.Scale(PodlogaTexCoord_x, PodlogaTexCoord_y, 1f);
+            gl.MatrixMode(OpenGL.GL_MODELVIEW);
+
             gl.Begin(OpenGL.GL_QUADS);
-                float duzina = POLU_DUZINA;
+                float duzina = POLU_DUZINA*  (float) YetAnotherKontejnerScale;
                 gl.Normal(LightingUtilities.
                     FindFaceNormal(-duzina, 0.1f, -duzina,
                                    -duzina, 0.1f, duzina,
                                    duzina, 0.1f, duzina));
-            
-                
-            
+
+
+
+
+                //gl.TexCoord(0.0f, 0.0f);
                 gl.TexCoord(0.0f, 0.0f);
                 gl.Vertex(-duzina, 0.1f, -duzina);
 
-            
-                gl.TexCoord(0.0f, PodlogaTexCoord_y);
+
+                //gl.TexCoord(0.0f, PodlogaTexCoord_y);
+                gl.TexCoord(0.0f, 1.0f);
                 gl.Vertex(-duzina, 0.1f, duzina);
 
-                gl.TexCoord(PodlogaTexCoord_x, PodlogaTexCoord_y);
+            
+                //gl.TexCoord(PodlogaTexCoord_x, PodlogaTexCoord_y);
+                gl.TexCoord(1.0f, 1.0f);
                 gl.Vertex( duzina, 0.1f, duzina);
 
-                gl.TexCoord(PodlogaTexCoord_x, 0.0f);
+                //gl.TexCoord(PodlogaTexCoord_x, 0.0f);
+                gl.TexCoord(1.0f, 0.0f);
                 gl.Vertex( duzina, 0.1f, -duzina); 
             gl.End();
             gl.BindTexture(OpenGL.GL_TEXTURE_2D, 0);
+
+            gl.Disable(OpenGL.GL_TEXTURE_2D);
         }
         /// <summary>
         ///  Iscrtavanje SharpGL primitive grida.
@@ -980,6 +995,15 @@ namespace PF1S1._2
             //kontrole tastature
             if(isGluLookAtCameraEnabled == true)
             {
+                if (m_xRotation > 0)
+                {
+                    m_xRotation = 0;
+                }
+                if (m_xRotation < -90)
+                {
+                    m_xRotation = -90;
+                }
+               
                 gl.Rotate(m_xRotation, 1.0f, 0.0f, 0.0f);
                 gl.Rotate(m_yRotation, 0.0f, 1.0f, 0.0f);
                 gl.Translate(0f, 0f, m_zTranslation);
