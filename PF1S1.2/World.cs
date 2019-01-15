@@ -539,13 +539,6 @@ namespace PF1S1._2
         {
             gl.Enable(OpenGL.GL_TEXTURE_2D);
 
-            /*
-            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_R, OpenGL.GL_REPEAT);
-            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_WRAP_S, OpenGL.GL_REPEAT);
-            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MIN_FILTER, OpenGL.GL_LINEAR_MIPMAP_LINEAR);
-            gl.TexParameter(OpenGL.GL_TEXTURE_2D, OpenGL.GL_TEXTURE_MAG_FILTER, OpenGL.GL_LINEAR);
-            */
-
             gl.TexEnv(OpenGL.GL_TEXTURE_ENV, OpenGL.GL_TEXTURE_ENV_MODE, OpenGL.GL_MODULATE);
             // Ucitaj slike i izgenerisi teksture
             gl.GenTextures(m_textureCount, textureIDs);
@@ -583,12 +576,13 @@ namespace PF1S1._2
 
         private void SetUpLighting(OpenGL gl)
         {
-            float[] global_ambient = new float[] { 0.5f, 0.5f, 0.5f, 0.5f };
-            gl.LightModel(OpenGL.GL_LIGHT_MODEL_AMBIENT, global_ambient);
+            //float[] global_ambient = new float[] { 0.5f, 0.5f, 0.5f, 0.5f };
+            //gl.LightModel(OpenGL.GL_LIGHT_MODEL_AMBIENT, global_ambient);
 
             //TODO 1B: Podesavanje crvenog tackastog izvora
             float[] light0pos = new float[] { 0.0f, BanderaHeight, (float)-(2 * POLU_DUZINA), 1.0f };
-            float[] ambijentalnaKomponenta = { 1.0f, 0.0f, 0.0f, 1.0f };
+            //float[] ambijentalnaKomponenta = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] ambijentalnaKomponenta = { 0.3f, 0.3f, 0.3f, 1.0f };
             float[] difuznaKomponenta = { 1.0f, 0.0f, 0.0f, 1.0f };
             gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light0pos);
             gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_SPOT_CUTOFF, 180.0f);
@@ -598,7 +592,7 @@ namespace PF1S1._2
 
             //TODO 2B: Podesavanje crvenog reflektorskog 35deg izvora sa podesivom ambijentalnom komponentom
             float[] light1pos = new float[] { POLU_DUZINA/2, 2.0f, (float)-(2 * POLU_DUZINA), 1.0f };
-            float[] ambijentalnaKomponenta1 = { 1.0f, 0.0f, 0.0f, 1.0f };
+            float[] ambijentalnaKomponenta1 = { RedValueReflector, GreenValueReflector, BlueValueReflector, 1.0f };//{ 1.0f, 0.0f, 0.0f, 1.0f };
             float[] difuznaKomponenta1 = { 1.0f, 0.0f, 0.0f, 1.0f };
             float[] light1direction = {0.0f, -1.0f,0.0f,1.0f };
 
@@ -628,6 +622,7 @@ namespace PF1S1._2
             cube.Render(gl, RenderMode.Render);
             gl.PopMatrix();
             */
+            
             float[] light0pos = new float[] { 0.0f, BanderaHeight, (float)-(2 * POLU_DUZINA), 1.0f };
             //float[] light0pos = new float[] { 0.0f, BanderaHeight, 0, 1.0f };
             gl.Light(OpenGL.GL_LIGHT0, OpenGL.GL_POSITION, light0pos);
@@ -711,7 +706,7 @@ namespace PF1S1._2
             setOutline(gl);
             
 
-            float[] eyeVector = { 2f, 0.5f, -2*POLU_DUZINA - POLU_DUZINA/4 };
+            float[] eyeVector = { POLU_DUZINA, 0.5f, -2*POLU_DUZINA - POLU_DUZINA/4 };
             float[] centerVector = {-100,0,0 };
             float[] upVector = { 0, 1, 0 };
 

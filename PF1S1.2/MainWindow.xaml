@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SharpGL WPF Application" Height="481" Width="609" 
-        xmlns:sharpGL="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF" Closing="Window_Closing" Loaded="Window_Loaded" KeyDown="Window_KeyDown" MouseMove="Window_MouseMove">
+        xmlns:sharpGL="clr-namespace:SharpGL.WPF;assembly=SharpGL.WPF" Loaded="Window_Loaded" KeyDown="Window_KeyDown" MouseMove="Window_MouseMove">
     <Grid>
         <DockPanel>
             <ToolBarTray x:Name="ToolBarTray" DockPanel.Dock="Top" Height="102">
@@ -60,20 +60,6 @@
                     </StackPanel>
                 </ToolBar>
             </ToolBarTray>
-            <StackPanel Orientation="Vertical" Width="73">
-                <Label>X-translate</Label>
-                <Slider x:Name="X_translate" ValueChanged="X_translate_ValueChanged" Width="60" Value="0" Margin="0 10 0 10" Minimum="-10" Maximum="10"></Slider>
-                <Label>Y-translate</Label>
-                <Slider x:Name="Y_translate" ValueChanged="Y_translate_ValueChanged" Width="60" Value="0" Margin="0 10 0 10" Minimum="-10" Maximum="10"></Slider>
-                <Label>Z-translate</Label>
-                <Slider x:Name="Z_translate" ValueChanged="Z_translate_ValueChanged" Width="60" Value="0" Margin="0 10 0 10" Minimum="-10" Maximum="10"></Slider>
-                <Label>X-scale</Label>
-                <Slider x:Name="X_scale" ValueChanged="X_scale_ValueChanged" Width="60" Value="1" Margin="0 10 0 10" Minimum="0" Maximum="1"></Slider>
-                <Label>Y-scale</Label>
-                <Slider x:Name="Y_scale" ValueChanged="Y_scale_ValueChanged" Width="60" Value="1" Margin="0 10 0 10" Minimum="0" Maximum="1"></Slider>
-                <Label>Z-scale</Label>
-                <Slider x:Name="Z_scale" ValueChanged="Z_scale_ValueChanged" Width="60" Value="1" Margin="0 10 0 10" Minimum="0" Maximum="1"></Slider>
-            </StackPanel>
             <!-- The OpenGL control provides a OpenGL drawing surface. -->
             <sharpGL:OpenGLControl 
             Name="openGLControl" OpenGLDraw="openGLControl_OpenGLDraw" 

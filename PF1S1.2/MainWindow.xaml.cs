@@ -321,85 +321,9 @@ namespace PF1S1._2
 
             }
         }
+             
         
-
-        private void X_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.X_translateDebug = (float) X_translate.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void Y_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.Y_translateDebug = (float)Y_translate.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void Z_translate_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.Z_translateDebug = (float)Z_translate.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void X_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.X_scaleDebug = (float)X_scale.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void Y_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.Y_scaleDebug = (float)Y_scale.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void Z_scale_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            try
-            {
-                m_world.Z_scaleDebug = (float)Z_scale.Value;
-            }
-            catch (NullReferenceException)
-            {
-
-            }
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            MessageBox.Show("Scale: " + X_scale.Value + "|" + Y_scale.Value + "|" + Z_scale.Value + "\n"+
-                "Translate: " + X_translate.Value + "|" + Y_translate.Value + "|" + Z_translate.Value);
-        }
+        
 
         private void LookAt_Click(object sender, RoutedEventArgs e)
         {
