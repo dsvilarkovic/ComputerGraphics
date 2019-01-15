@@ -154,8 +154,9 @@ namespace PF1S1._2
 
             //prekidac za pokretanje animacije
             if (e.Key.Equals(Key.V))
-            {
+            {                
                 m_world.IsAnimationStarted = !m_world.IsAnimationStarted;
+                ToolBarTray.IsEnabled = !m_world.IsAnimationStarted;
             }
         }
 
